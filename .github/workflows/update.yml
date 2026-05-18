@@ -1,0 +1,49 @@
+name: Update padel schedule
+
+on:
+  schedule:
+    # Every 30 minutes, 08:00–22:00 Moscow time (UTC+3 = UTC 05:00–19:00)
+    - cron: "0,30 5-19 * * *"
+  workflow_dispatch:  # allow manual trigger from GitHub UI
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Restore pinned_message_id.txt between runs
+      - name: Restore cache
+        uses: actions/cache@v4
+        with:
+          path: padel-bot/pinned_message_id.txt
+          key: pinned-msg-id
+          restore-keys: pinned-msg-id
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: padel-bot/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r padel-bot/requirements.txt
+
+      - name: Run bot
+        working-directory: padel-bot
+        env:
+          YCLIENTS_TOKEN: ${{ secrets.YCLIENTS_TOKEN }}
+          OPENWEATHER_API_KEY: ${{ secrets.OPENWEATHER_API_KEY }}
+          TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
+          TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
+        run: python main.py
+
+      # Save pinned_message_id.txt for next run
+      - name: Save cache
+        uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: padel-bot/pinned_message_id.txt
+          key: pinned-msg-id

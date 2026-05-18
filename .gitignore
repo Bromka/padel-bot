@@ -1,0 +1,5 @@
+__pycache__/
+*.pyc
+.env.example
+.env
+pinned_message_id.txt
