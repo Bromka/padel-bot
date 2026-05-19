@@ -1,5 +1,4 @@
 """Telegram bot: send or update pinned photo."""
-import os
 import requests
 
 TG_API = "https://api.telegram.org/bot{token}/{method}"
@@ -12,6 +11,18 @@ def _call(token: str, method: str, **kwargs) -> dict:
     if not data.get("ok"):
         raise RuntimeError(f"Telegram API error [{method}]: {data}")
     return data["result"]
+
+
+def get_pinned_message_id(token: str, chat_id: str) -> int | None:
+    """Ask Telegram what's currently pinned — no local storage needed."""
+    try:
+        chat = _call(token, "getChat", json={"chat_id": chat_id})
+        pinned = chat.get("pinned_message")
+        if pinned:
+            return pinned["message_id"]
+    except Exception:
+        pass
+    return None
 
 
 def send_photo(
@@ -54,16 +65,3 @@ def pin_message(token: str, chat_id: str, message_id: int) -> None:
         token, "pinChatMessage",
         json={"chat_id": chat_id, "message_id": message_id, "disable_notification": True},
     )
-
-
-def load_pinned_id(filepath: str) -> int | None:
-    try:
-        with open(filepath) as f:
-            return int(f.read().strip())
-    except (FileNotFoundError, ValueError):
-        return None
-
-
-def save_pinned_id(filepath: str, message_id: int) -> None:
-    with open(filepath, "w") as f:
-        f.write(str(message_id))

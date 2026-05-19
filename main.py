@@ -6,9 +6,7 @@ import config
 from yclients import fetch_club_schedule
 from weather import fetch_hourly_forecast
 from renderer import render_schedule
-from bot import (
-    edit_photo, load_pinned_id, pin_message, save_pinned_id, send_photo,
-)
+from bot import edit_photo, get_pinned_message_id, pin_message, send_photo
 
 
 def run():
@@ -47,21 +45,22 @@ def run():
     print(f"Image rendered: {len(image_bytes):,} bytes")
 
     # 4. Send or update Telegram message
-    pinned_id = load_pinned_id(config.PINNED_MSG_FILE)
+    # Ask Telegram directly what's pinned — no local file needed
+    pinned_id = get_pinned_message_id(config.TG_BOT_TOKEN, config.TG_CHAT_ID)
+    print(f"Current pinned message: {pinned_id}")
 
     if pinned_id:
         updated = edit_photo(config.TG_BOT_TOKEN, config.TG_CHAT_ID, pinned_id, image_bytes)
         if updated:
             print(f"Updated pinned message {pinned_id}")
             return
-        print("Edit failed (message too old?), sending fresh…")
+        print("Edit failed, sending fresh…")
 
     msg_id = send_photo(
         config.TG_BOT_TOKEN, config.TG_CHAT_ID,
         image_bytes, thread_id=config.TG_THREAD_ID,
     )
     pin_message(config.TG_BOT_TOKEN, config.TG_CHAT_ID, msg_id)
-    save_pinned_id(config.PINNED_MSG_FILE, msg_id)
     print(f"Sent and pinned new message {msg_id}")
 
 
