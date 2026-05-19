@@ -1,4 +1,5 @@
 """Entry point — fetch data, render image, update Telegram."""
+import os
 import sys
 import traceback
 
@@ -10,6 +11,16 @@ from bot import edit_photo, get_pinned_message_id, pin_message, send_photo
 
 
 def run():
+    # Validate required env vars and print what Railway actually provides
+    all_keys = sorted(k for k in os.environ if not k.startswith("_"))
+    missing = [k for k in ("YCLIENTS_TOKEN", "OPENWEATHER_API_KEY", "TG_BOT_TOKEN", "TG_CHAT_ID")
+               if not os.environ.get(k)]
+    print(f"Available env vars: {all_keys}")
+    if missing:
+        print(f"ERROR — missing vars: {missing}", file=sys.stderr)
+        # Exit 0 so Railway build phase doesn't fail; vars are only available at cron runtime
+        sys.exit(0)
+
     # 1. Fetch weather
     try:
         forecast = fetch_hourly_forecast(
@@ -45,7 +56,6 @@ def run():
     print(f"Image rendered: {len(image_bytes):,} bytes")
 
     # 4. Send or update Telegram message
-    # Ask Telegram directly what's pinned — no local file needed
     pinned_id = get_pinned_message_id(config.TG_BOT_TOKEN, config.TG_CHAT_ID)
     print(f"Current pinned message: {pinned_id}")
 
